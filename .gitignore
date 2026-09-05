@@ -1,0 +1,17 @@
+# Temporary files
+tmpclaude-*
+
+# Wrangler
+.wrangler/
+wrangler.toml.local
+
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.local
+
+# OS files
+.DS_Store
+Thumbs.db
