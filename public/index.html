@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Courtboard</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-primary:#F8F9FA;
+    --bg-secondary:#FFFFFF;
+    --text-primary:#0F172A;
+    --text-secondary:#475569;
+    --text-tertiary:#94A3B8;
+    --accent-primary:#3B82F6;
+    --accent-secondary:#8B5CF6;
+    --accent-gradient:linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%);
+    --success:#10B981;
+    --danger:#EF4444;
+    --warning:#F59E0B;
+    --border-light:#E2E8F0;
+    --border-medium:#CBD5E1;
+    --shadow-sm:0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md:0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg:0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-xl:0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    --radius-sm:8px;
+    --radius-md:12px;
+    --radius-lg:16px;
+    --radius-xl:20px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg-primary);
+    color:var(--text-primary);
+    font-family:'IBM Plex Sans',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    padding-bottom:76px;
+  }
+  .display{
+    font-family:'Bebas Neue',sans-serif;
+    letter-spacing:0.02em;
+  }
+  button{font-family:inherit;transition:all 0.2s ease;}
+
+  /* ---------- Header ---------- */
+  header.top{
+    padding:20px 20px 16px;
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    background:var(--bg-secondary);
+    box-shadow:var(--shadow-sm);
+    position:sticky;
+    top:0;
+    z-index:100;
+  }
+  header.top .brand{
+    font-family:'Bebas Neue',sans-serif;
+    font-size:32px;
+    letter-spacing:0.03em;
+    background:var(--accent-gradient);
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+    background-clip:text;
+  }
+  header.top .brand span{color:var(--accent-secondary);}
+  header.top .tagline{
+    font-size:13px;
+    color:var(--text-secondary);
+    margin-top:4px;
+    font-weight:500;
+  }
+
+  /* Sport switch - flip scoreboard tabs */
+  .sport-switch{
+    display:flex;
+    margin:20px 20px 0;
+    background:var(--bg-secondary);
+    border-radius:var(--radius-lg);
+    padding:4px;
+    box-shadow:var(--shadow-sm);
+    gap:6px;
+  }
+  .sport-switch button{
+    flex:1;
+    padding:12px 16px;
+    background:transparent;
+    border:none;
+    font-size:14px;
+    font-weight:600;
+    color:var(--text-secondary);
+    cursor:pointer;
+    border-radius:var(--radius-md);
+  }
+  .sport-switch button:hover{
+    background:var(--bg-primary);
+    color:var(--text-primary);
+  }
+  .sport-switch button.active{
+    background:var(--accent-gradient);
+    color:var(--bg-secondary);
+    box-shadow:var(--shadow-md);
+  }
+  .sport-switch button .dot{
+    display:inline-block;
+    width:8px;height:8px;
+    border-radius:50%;
+    margin-right:8px;
+    background:currentColor;
+    position:relative;
+    top:-1px;
+    opacity:0.7;
+  }
+  .sport-switch button.active .dot{opacity:1;}
+
+  main{
+    max-width:540px;
+    margin:0 auto;
+    padding:24px 20px;
+  }
+  section.view{display:none;}
+  section.view.active{display:block;}
+
+  h2.section-title{
+    font-family:'Bebas Neue',sans-serif;
+    font-size:24px;
+    letter-spacing:0.02em;
+    margin:0 0 16px;
+    padding-bottom:0;
+    color:var(--text-primary);
+    font-weight:normal;
+  }
+
+  /* ---------- Cards / setup ---------- */
+  .card{
+    background:var(--bg-secondary);
+    border:1px solid var(--border-light);
+    border-radius:var(--radius-lg);
+    padding:20px;
+    margin-bottom:16px;
+    box-shadow:var(--shadow-sm);
+  }
+  .field{margin-bottom:16px;}
+  .field:last-child{margin-bottom:0;}
+  .field label{
+    display:block;
+    font-size:13px;
+    font-weight:600;
+    color:var(--text-secondary);
+    margin-bottom:8px;
+    letter-spacing:0.01em;
+  }
+  .field input{
+    width:100%;
+    padding:12px 14px;
+    border:1.5px solid var(--border-medium);
+    border-radius:var(--radius-md);
+    font-size:15px;
+    font-family:inherit;
+    background:var(--bg-secondary);
+    color:var(--text-primary);
+    transition:all 0.2s ease;
+  }
+  .field input:hover{
+    border-color:var(--accent-primary);
+  }
+  .field input:focus{
+    outline:none;
+    border-color:var(--accent-primary);
+    box-shadow:0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+  .team-row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+  }
+  .toggle-pair{
+    display:flex;
+    background:var(--bg-primary);
+    border-radius:var(--radius-md);
+    padding:3px;
+    gap:4px;
+  }
+  .toggle-pair button{
+    flex:1;
+    padding:10px 8px;
+    background:transparent;
+    border:none;
+    font-size:13px;
+    font-weight:600;
+    color:var(--text-secondary);
+    cursor:pointer;
+    border-radius:var(--radius-sm);
+  }
+  .toggle-pair button:hover{
+    background:var(--bg-secondary);
+    color:var(--text-primary);
+  }
+  .toggle-pair button.active{
+    background:var(--bg-secondary);
+    color:var(--accent-primary);
+    box-shadow:var(--shadow-sm);
+  }
+  .btn{
+    display:block;
+    width:100%;
+    padding:14px 16px;
+    border-radius:var(--radius-md);
+    border:none;
+    background:var(--accent-gradient);
+    color:var(--bg-secondary);
+    font-size:15px;
+    font-weight:600;
+    cursor:pointer;
+    text-align:center;
+    box-shadow:var(--shadow-md);
+  }
+  .btn:hover{
+    box-shadow:var(--shadow-lg);
+    transform:translateY(-1px);
+  }
+  .btn:active{
+    transform:translateY(0);
+    box-shadow:var(--shadow-sm);
+  }
+  .btn.ghost{
+    background:transparent;
+    border:1.5px solid var(--border-medium);
+    color:var(--text-secondary);
+    box-shadow:none;
+  }
+  .btn.ghost:hover{
+    border-color:var(--accent-primary);
+    color:var(--accent-primary);
+    background:rgba(59, 130, 246, 0.05);
+    box-shadow:none;
+    transform:translateY(0);
+  }
+  .error-msg{
+    color:var(--danger);
+    font-size:13px;
+    font-weight:600;
+    margin-top:12px;
+    display:none;
+    padding:12px;
+    background:rgba(239, 68, 68, 0.1);
+    border-radius:var(--radius-sm);
+    border-left:3px solid var(--danger);
+  }
+
+  /* ---------- Set / game score rows ---------- */
+  .set-row{
+    display:grid;
+    grid-template-columns:60px 1fr 16px 1fr 32px;
+    align-items:center;
+    gap:10px;
+    margin-bottom:10px;
+  }
+  .set-row .set-label{
+    font-size:13px;
+    font-weight:600;
+    color:var(--text-secondary);
+  }
+  .set-row .set-input{
+    width:100%;
+    padding:10px 8px;
+    border:1.5px solid var(--border-medium);
+    border-radius:var(--radius-sm);
+    font-size:16px;
+    font-family:inherit;
+    background:var(--bg-secondary);
+    color:var(--text-primary);
+    text-align:center;
+    transition:all 0.2s ease;
+    font-weight:600;
+  }
+  .set-row .set-input:hover{
+    border-color:var(--accent-primary);
+  }
+  .set-row .set-input:focus{
+    outline:none;
+    border-color:var(--accent-primary);
+    box-shadow:0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+  .set-row .set-sep{
+    text-align:center;
+    color:var(--text-tertiary);
+    font-weight:700;
+    font-size:18px;
+  }
+  .set-row .set-remove{
+    background:none;
+    border:none;
+    color:var(--text-tertiary);
+    font-size:18px;
+    cursor:pointer;
+    width:32px;
+    padding:0;
+    border-radius:var(--radius-sm);
+    height:32px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .set-row .set-remove:hover{
+    background:rgba(239, 68, 68, 0.1);
+    color:var(--danger);
+  }
+
+  /* ---------- History ---------- */
+  .match-item{
+    background:var(--bg-secondary);
+    border:1px solid var(--border-light);
+    border-radius:var(--radius-lg);
+    padding:16px 18px;
+    margin-bottom:12px;
+    box-shadow:var(--shadow-sm);
+    transition:all 0.2s ease;
+    position:relative;
+  }
+  .match-item:hover{
+    box-shadow:var(--shadow-md);
+    border-color:var(--border-medium);
+  }
+  .match-item .row1{
+    display:flex;
+    justify-content:space-between;
+    font-size:15px;
+    font-weight:600;
+    color:var(--text-primary);
+  }
+  .match-item .row1 .win{
+    color:var(--accent-primary);
+    position:relative;
+  }
+  .match-item .row1 .win::before{
+    content:'';
+    position:absolute;
+    bottom:-2px;
+    left:0;
+    right:0;
+    height:2px;
+    background:var(--accent-gradient);
+    border-radius:2px;
+  }
+  .match-item .row2{
+    font-size:12px;
+    color:var(--text-tertiary);
+    margin-top:4px;
+    font-weight:500;
+  }
+  .match-item .score-line{
+    font-family:'Bebas Neue',sans-serif;
+    font-size:22px;
+    margin-top:10px;
+    letter-spacing:0.02em;
+    color:var(--text-secondary);
+  }
+  .match-item .del{
+    float:right;
+    font-size:11px;
+    color:var(--text-tertiary);
+    cursor:pointer;
+    background:none;
+    border:none;
+    font-family:inherit;
+    font-weight:600;
+    padding:4px 8px;
+    border-radius:var(--radius-sm);
+    text-transform:uppercase;
+    letter-spacing:0.02em;
+  }
+  .match-item .del:hover{
+    background:rgba(239, 68, 68, 0.1);
+    color:var(--danger);
+  }
+  .empty-state{
+    text-align:center;
+    padding:60px 20px;
+    color:var(--text-tertiary);
+  }
+  .empty-state .display{
+    font-size:28px;
+    color:var(--text-secondary);
+    display:block;
+    margin-bottom:8px;
+  }
+
+  /* ---------- Leaderboard ---------- */
+  table.board{
+    width:100%;
+    border-collapse:collapse;
+    background:var(--bg-secondary);
+    border:1px solid var(--border-light);
+    border-radius:var(--radius-lg);
+    overflow:hidden;
+    box-shadow:var(--shadow-sm);
+  }
+  table.board th, table.board td{
+    padding:14px 12px;
+    text-align:left;
+    font-size:14px;
+  }
+  table.board th{
+    background:var(--text-primary);
+    color:var(--bg-secondary);
+    font-weight:600;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+  }
+  table.board td{
+    color:var(--text-primary);
+    font-weight:500;
+  }
+  table.board td.num, table.board th.num{text-align:center;}
+  table.board tr:not(:last-child) td{
+    border-bottom:1px solid var(--border-light);
+  }
+  table.board tbody tr:hover{
+    background:var(--bg-primary);
+  }
+  table.board tr:nth-child(2) td:first-child{
+    font-weight:700;
+    color:var(--accent-primary);
+  }
+  table.board tr:nth-child(2) td:first-child::before{
+    content:"🥇 ";
+  }
+
+  /* ---------- Bottom nav ---------- */
+  nav.bottom{
+    position:fixed;
+    bottom:0;left:0;right:0;
+    background:var(--bg-secondary);
+    border-top:1px solid var(--border-light);
+    display:flex;
+    max-width:540px;
+    margin:0 auto;
+    padding-bottom:env(safe-area-inset-bottom);
+    box-shadow:0 -4px 6px -1px rgba(0, 0, 0, 0.05);
+  }
+  nav.bottom button{
+    flex:1;
+    padding:12px 8px 10px;
+    background:none;
+    border:none;
+    font-size:11px;
+    font-weight:600;
+    color:var(--text-tertiary);
+    cursor:pointer;
+    position:relative;
+  }
+  nav.bottom button:hover{
+    color:var(--text-secondary);
+    background:var(--bg-primary);
+  }
+  nav.bottom button .ic{
+    display:block;
+    font-size:20px;
+    margin-bottom:4px;
+  }
+  nav.bottom button.active{
+    color:var(--accent-primary);
+  }
+  nav.bottom button.active::before{
+    content:'';
+    position:absolute;
+    top:0;
+    left:20%;
+    right:20%;
+    height:3px;
+    background:var(--accent-gradient);
+    border-radius:0 0 3px 3px;
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div>
+    <div class="brand">Court<span>board</span></div>
+    <div class="tagline">Shared scoreboard for the group</div>
+  </div>
+</header>
+
+<div class="sport-switch" id="sportSwitch">
+  <button data-sport="tennis" class="active"><span class="dot"></span>Tennis</button>
+  <button data-sport="pickleball"><span class="dot"></span>Pickleball</button>
+</div>
+
+<main>
+
+  <section class="view active" id="view-new">
+    <h2 class="section-title">Log a match</h2>
+    <div id="setupCard" class="card"></div>
+  </section>
+
+  <section class="view" id="view-history">
+    <h2 class="section-title">Match history</h2>
+    <div id="historyList"></div>
+  </section>
+
+  <section class="view" id="view-leaderboard">
+    <h2 class="section-title">Leaderboard</h2>
+    <div id="leaderboardTable"></div>
+  </section>
+
+</main>
+
+<nav class="bottom">
+  <button data-view="new" class="active"><span class="ic">＋</span>Log match</button>
+  <button data-view="history"><span class="ic">☰</span>History</button>
+  <button data-view="leaderboard"><span class="ic">🏆</span>Leaderboard</button>
+</nav>
+
+<script src="/app.js"></script>
+</body>
+</html>
