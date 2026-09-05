@@ -2,6 +2,10 @@ name = "courtboard"
 compatibility_date = "2024-09-23"
 pages_build_output_dir = "public"
 
+# For Pages, assets should be in the public directory
+[assets]
+directory = "public"
+
 # After creating a KV namespace (see README), put its id here so
 # `wrangler pages deploy` binds it automatically. Not required if you
 # bind it through the Cloudflare dashboard instead.
