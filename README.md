@@ -18,8 +18,14 @@ functions/
   api/players.js    list / add players
   api/matches.js    list / record / delete matches
   api/leaderboard.js  computed standings per sport
-wrangler.toml       optional, only needed for CLI deploys
+worker.js           Worker entry point - routes /api/* to the handlers
+                     above, everything else falls through to static assets
+wrangler.toml       Worker config (entry point, assets, KV binding)
 ```
+
+This is deployed as a single **Cloudflare Worker** with static assets, not
+Cloudflare Pages - that's why there's a `worker.js` entry point routing
+`/api/*` requests to the handler files under `functions/`.
 
 ## Deploy it (free, ~10 minutes)
 
@@ -28,41 +34,50 @@ will stay well within the free limits for a friend group).
 
 ### 1. Create the KV namespace (the shared storage)
 
-1. Go to the [Cloudflare dashboard](https://dash.cloudflare.com) → **Workers & Pages** → **KV** in the left sidebar.
-2. Click **Create a namespace**, name it `courtboard-scores`, and save.
+**Via the CLI** (needs [Node.js](https://nodejs.org) installed):
+
+```
+npx wrangler login
+npx wrangler kv namespace create SCORES_KV
+```
+
+That prints an `id` - put it in `wrangler.toml` under `[[kv_namespaces]]`
+(uncomment those lines and fill in the id).
+
+**Or via the dashboard**, if you'd rather not use the CLI at all: go to
+[Cloudflare dashboard](https://dash.cloudflare.com) → **Workers & Pages** →
+**KV**, click **Create a namespace**, name it `courtboard-scores`, and save
+(you'll bind it in step 3 instead of editing `wrangler.toml`).
 
 ### 2. Deploy the site
 
-**Easiest: drag-and-drop, no git or command line needed.**
+**With the CLI:**
 
-1. In the dashboard, go to **Workers & Pages** → **Create** → **Pages** → **Upload assets**.
-2. Name the project (e.g. `courtboard`).
-3. Drag in this whole folder (it needs to include the `public` and `functions`
-   folders as-is - don't upload only the contents of `public`).
-4. Click **Deploy site**.
+```
+npx wrangler deploy
+```
 
-*(If you'd rather auto-deploy on every change, push this folder to a GitHub
-repo and use **Connect to Git** instead of **Upload assets** - same steps
-after that.)*
+**Or connect this GitHub repo** in the dashboard under **Workers & Pages** →
+**Create** → **Import a repository**, so it redeploys automatically on every
+push.
 
 ### 3. Bind the KV namespace to the site
 
-This is the one step that's easy to miss, and the app won't save anything
+If you didn't already add the namespace id to `wrangler.toml` in step 1,
+this is the one step that's easy to miss, and the app won't save anything
 without it:
 
-1. Open your new Pages project → **Settings** → **Functions**.
-2. Under **KV namespace bindings**, click **Add binding**.
+1. Open your Worker in the dashboard → **Settings** → **Bindings**.
+2. Click **Add** → **KV namespace**.
 3. Variable name: `SCORES_KV` (must match exactly).
 4. KV namespace: pick `courtboard-scores`.
-5. Save, then repeat for both the **Production** and **Preview** environments.
-6. Go to **Deployments** and **retry/redeploy** the latest deployment so it
-   picks up the binding.
+5. Save - this redeploys automatically with the binding attached.
 
 ### 4. Use it
 
-Your app is live at `https://<project-name>.pages.dev`. Share that link with
-your group - everyone who opens it sees the same players, matches, and
-leaderboard, no login needed.
+Your app is live at `https://<worker-name>.<your-subdomain>.workers.dev`.
+Share that link with your group - everyone who opens it sees the same
+players, matches, and leaderboard, no login needed.
 
 ## How it works
 

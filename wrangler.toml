@@ -1,14 +1,15 @@
 name = "courtboard"
 compatibility_date = "2024-09-23"
-pages_build_output_dir = "public"
+main = "worker.js"
 
-# For Pages, assets should be in the public directory
 [assets]
 directory = "public"
+binding = "ASSETS"
 
-# After creating a KV namespace (see README), put its id here so
-# `wrangler pages deploy` binds it automatically. Not required if you
-# bind it through the Cloudflare dashboard instead.
+# Create the namespace first: `wrangler kv namespace create SCORES_KV`
+# (or via the dashboard: Workers & Pages -> KV -> Create a namespace),
+# then put its id here. Not required if you bind it through the
+# Cloudflare dashboard's Worker Settings -> Bindings instead.
 # [[kv_namespaces]]
 # binding = "SCORES_KV"
 # id = "your-kv-namespace-id"
