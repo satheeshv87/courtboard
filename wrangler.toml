@@ -6,10 +6,6 @@ main = "worker.js"
 directory = "public"
 binding = "ASSETS"
 
-# Create the namespace first: `wrangler kv namespace create SCORES_KV`
-# (or via the dashboard: Workers & Pages -> KV -> Create a namespace),
-# then put its id here. Not required if you bind it through the
-# Cloudflare dashboard's Worker Settings -> Bindings instead.
-# [[kv_namespaces]]
-# binding = "SCORES_KV"
-# id = "your-kv-namespace-id"
+[[kv_namespaces]]
+binding = "SCORES_KV"
+id = "fba04f0f10db4f85a4d31657dacf4853"
