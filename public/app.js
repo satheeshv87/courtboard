@@ -23,6 +23,18 @@ const api = {
     }
     return r.json();
   },
+  async put(path, body) {
+    const r = await fetch(path, {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({}));
+      throw new Error(e.error || "PUT failed");
+    }
+    return r.json();
+  },
   async del(path) {
     const r = await fetch(path, { method: "DELETE" });
     if (!r.ok) throw new Error("DELETE failed");
@@ -45,6 +57,7 @@ const app = {
   sport: "tennis",
   players: [],
   setupFormat: { tennis: "singles", pickleball: "doubles" },
+  editingMatch: null, // set to a match object while editing it, else null
 };
 
 let setRowCount = 0; // used to give each set/game row a running number
@@ -88,26 +101,61 @@ function renderSetup() {
     </div>
     <datalist id="playersList">${app.players.map((p) => `<option value="${escapeHtml(p.name)}">`).join("")}</datalist>
     <div class="error-msg" id="setupError"></div>
-    <button class="btn" id="saveMatchBtn" style="margin-top:14px">Save match</button>
+    <button class="btn" id="saveMatchBtn" style="margin-top:14px">${app.editingMatch ? "Update match" : "Save match"}</button>
+    ${app.editingMatch ? '<button type="button" class="btn ghost" id="cancelEditBtn" style="margin-top:10px">Cancel edit</button>' : ""}
   `;
 
   document.getElementById("setupCard").innerHTML = html;
+  document.getElementById("newViewTitle").textContent = app.editingMatch ? "Edit match" : "Log a match";
+
+  const editing = app.editingMatch;
+  const sets = editing ? parseScoreLine(editing) : null;
+
   setRowCount = 0;
   document.getElementById("setRows").innerHTML = "";
-  addSetRow();
-  addSetRow();
+  if (sets && sets.length) {
+    sets.forEach((s) => addSetRow(s.a, s.b));
+  } else {
+    addSetRow();
+    addSetRow();
+  }
+
+  if (editing) {
+    document.getElementById("teamA1").value = editing.teamA[0] || "";
+    document.getElementById("teamB1").value = editing.teamB[0] || "";
+    if (fmt === "doubles") {
+      document.getElementById("teamA2").value = editing.teamA[1] || "";
+      document.getElementById("teamB2").value = editing.teamB[1] || "";
+    }
+  }
+
   wireSetupEvents();
 }
 
-function addSetRow() {
+// Recovers per-set/game scores for prefilling the edit form: prefers the
+// structured detail saved with the match, falls back to parsing scoreLine
+// for older matches saved before that field existed.
+function parseScoreLine(match) {
+  if (match.detail && Array.isArray(match.detail.sets)) return match.detail.sets;
+  return (match.scoreLine || "")
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part) => {
+      const [a, b] = part.split("-").map((n) => parseInt(n.trim(), 10));
+      return { a: Number.isNaN(a) ? 0 : a, b: Number.isNaN(b) ? 0 : b };
+    });
+}
+
+function addSetRow(aVal, bVal) {
   const idx = setRowCount++;
   const row = document.createElement("div");
   row.className = "set-row";
   row.innerHTML = `
     <span class="set-label">${unitLabel()} ${idx + 1}</span>
-    <input type="number" min="0" inputmode="numeric" class="set-input" data-team="a" />
+    <input type="number" min="0" inputmode="numeric" class="set-input" data-team="a" value="${aVal ?? ""}" />
     <span class="set-sep">-</span>
-    <input type="number" min="0" inputmode="numeric" class="set-input" data-team="b" />
+    <input type="number" min="0" inputmode="numeric" class="set-input" data-team="b" value="${bVal ?? ""}" />
     <button type="button" class="set-remove" aria-label="Remove this row">✕</button>
   `;
   document.getElementById("setRows").appendChild(row);
@@ -143,8 +191,15 @@ function wireSetupEvents() {
       document.querySelectorAll(".doubles-only").forEach((el) => (el.style.display = show ? "block" : "none"));
     })
   );
-  document.getElementById("addSetBtn").addEventListener("click", addSetRow);
+  document.getElementById("addSetBtn").addEventListener("click", () => addSetRow());
   document.getElementById("saveMatchBtn").addEventListener("click", saveMatch);
+  const cancelBtn = document.getElementById("cancelEditBtn");
+  if (cancelBtn) cancelBtn.addEventListener("click", cancelEdit);
+}
+
+function cancelEdit() {
+  app.editingMatch = null;
+  switchView("history");
 }
 
 async function saveMatch() {
@@ -219,21 +274,27 @@ async function saveMatch() {
     detail: { sets },
   };
 
+  const editing = app.editingMatch;
   const btn = document.getElementById("saveMatchBtn");
   btn.disabled = true;
-  btn.textContent = "Saving…";
+  btn.textContent = editing ? "Updating…" : "Saving…";
 
   try {
-    await api.post("/api/matches", payload);
+    if (editing) {
+      await api.put(`/api/matches?id=${editing.id}`, payload);
+    } else {
+      await api.post("/api/matches", payload);
+    }
     for (const name of [...teamA, ...teamB]) {
       await api.post("/api/players", { name });
     }
     app.players = await api.get("/api/players");
+    app.editingMatch = null;
     switchView("history");
   } catch (err) {
-    showSetupError("Could not save the match. Check your connection and try again.");
+    showSetupError(`Could not ${editing ? "update" : "save"} the match. Check your connection and try again.`);
     btn.disabled = false;
-    btn.textContent = "Save match";
+    btn.textContent = editing ? "Update match" : "Save match";
   }
 }
 
@@ -268,12 +329,20 @@ function renderHistory(matches) {
       });
       return `<div class="match-item">
         <button class="del" data-id="${m.id}">remove</button>
+        <button class="edit" data-id="${m.id}">edit</button>
         <div class="row1"><span class="${m.winner === "A" ? "win" : ""}">${escapeHtml(nameA)}</span> vs <span class="${m.winner === "B" ? "win" : ""}">${escapeHtml(nameB)}</span></div>
         <div class="row2">${dateStr}</div>
         <div class="score-line">${escapeHtml(m.scoreLine)}</div>
       </div>`;
     })
     .join("");
+
+  el.querySelectorAll(".edit").forEach((btn) =>
+    btn.addEventListener("click", () => {
+      const match = matches.find((m) => m.id === btn.dataset.id);
+      if (match) editMatch(match);
+    })
+  );
 
   el.querySelectorAll(".del").forEach((btn) =>
     btn.addEventListener("click", async () => {
@@ -286,6 +355,16 @@ function renderHistory(matches) {
       }
     })
   );
+}
+
+function editMatch(match) {
+  app.editingMatch = match;
+  app.sport = match.sport;
+  app.setupFormat[match.sport] = match.teamA.length > 1 ? "doubles" : "singles";
+  document.querySelectorAll("#sportSwitch button").forEach((b) =>
+    b.classList.toggle("active", b.dataset.sport === match.sport)
+  );
+  switchView("new");
 }
 
 // ---------------------------------------------------------------
@@ -337,13 +416,17 @@ function switchView(name) {
 
 function wireNav() {
   document.querySelectorAll("nav.bottom button").forEach((b) =>
-    b.addEventListener("click", () => switchView(b.dataset.view))
+    b.addEventListener("click", () => {
+      app.editingMatch = null;
+      switchView(b.dataset.view);
+    })
   );
 }
 
 function wireSportSwitch() {
   document.querySelectorAll("#sportSwitch button").forEach((b) =>
     b.addEventListener("click", () => {
+      app.editingMatch = null;
       app.sport = b.dataset.sport;
       document.querySelectorAll("#sportSwitch button").forEach((x) => x.classList.toggle("active", x === b));
       const activeView = document.querySelector("section.view.active").id;

@@ -362,7 +362,8 @@
     letter-spacing:0.02em;
     color:var(--text-secondary);
   }
-  .match-item .del{
+  .match-item .del,
+  .match-item .edit{
     float:right;
     font-size:11px;
     color:var(--text-tertiary);
@@ -379,6 +380,10 @@
   .match-item .del:hover{
     background:rgba(239, 68, 68, 0.1);
     color:var(--danger);
+  }
+  .match-item .edit:hover{
+    background:rgba(59, 130, 246, 0.1);
+    color:var(--accent-primary);
   }
   .empty-state{
     text-align:center;
@@ -498,7 +503,7 @@
 <main>
 
   <section class="view active" id="view-new">
-    <h2 class="section-title">Log a match</h2>
+    <h2 class="section-title" id="newViewTitle">Log a match</h2>
     <div id="setupCard" class="card"></div>
   </section>
 

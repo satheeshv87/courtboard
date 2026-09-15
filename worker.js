@@ -15,6 +15,7 @@ const routes = {
 const handlerNames = {
   GET: "onRequestGet",
   POST: "onRequestPost",
+  PUT: "onRequestPut",
   DELETE: "onRequestDelete",
 };
 

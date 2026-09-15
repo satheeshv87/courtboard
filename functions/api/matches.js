@@ -52,6 +52,51 @@ export async function onRequestPost({ request, env }) {
   return json(match, 201);
 }
 
+export async function onRequestPut({ request, env }) {
+  const url = new URL(request.url);
+  const id = url.searchParams.get("id");
+  if (!id) return badRequest("Missing id");
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return badRequest("Expected JSON body");
+  }
+
+  const { sport, teamA, teamB, scoreLine, winner, gamesA, gamesB, detail } =
+    body;
+
+  if (!SPORTS.includes(sport)) return badRequest("Unknown sport");
+  if (!Array.isArray(teamA) || !teamA.length)
+    return badRequest("teamA needs at least one player");
+  if (!Array.isArray(teamB) || !teamB.length)
+    return badRequest("teamB needs at least one player");
+  if (winner !== "A" && winner !== "B")
+    return badRequest("winner must be 'A' or 'B'");
+  if (!scoreLine) return badRequest("scoreLine is required");
+
+  const matches = await readList(env.SCORES_KV, "matches");
+  const existing = matches.find((m) => m.id === id);
+  if (!existing) return badRequest("Match not found");
+
+  const updated = {
+    ...existing,
+    sport,
+    teamA,
+    teamB,
+    scoreLine,
+    gamesA: gamesA ?? null,
+    gamesB: gamesB ?? null,
+    winner,
+    detail: detail ?? null,
+  };
+
+  const next = matches.map((m) => (m.id === id ? updated : m));
+  await writeList(env.SCORES_KV, "matches", next);
+  return json(updated);
+}
+
 export async function onRequestDelete({ request, env }) {
   const url = new URL(request.url);
   const id = url.searchParams.get("id");
